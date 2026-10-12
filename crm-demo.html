@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#052e2a">
+  <meta name="description" content="معاينة تفاعلية تجريبية لنظام سنع CRM ببيانات توضيحية.">
+  <title>معاينة سنع CRM | سنع</title>
+  <link rel="icon" href="public/assets/logo.png">
+  <link rel="stylesheet" href="crm-demo.css">
+  <script src="crm-demo.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#demo-content">انتقل إلى المحتوى</a>
+  <div class="demo-shell">
+    <aside class="sidebar" id="sidebar" aria-label="قائمة نظام إدارة العملاء">
+      <div class="sidebar-heading">
+        <a class="demo-brand" href="#dashboard" aria-label="سنع CRM - لوحة التحكم">
+          <img src="public/assets/logo.png" width="125" height="47" alt="سنع">
+          <span>CRM</span>
+        </a>
+        <p>إدارة علاقات العملاء</p>
+      </div>
+      <nav class="demo-nav" aria-label="التبويبات الرئيسية">
+        <a href="#dashboard" data-view="dashboard"><span class="nav-icon" aria-hidden="true">▦</span> لوحة التحكم</a>
+        <a href="#contacts" data-view="contacts"><span class="nav-icon" aria-hidden="true">♙</span> العملاء</a>
+        <a href="#opportunities" data-view="opportunities"><span class="nav-icon" aria-hidden="true">◇</span> الفرص البيعية</a>
+        <a href="#activities" data-view="activities"><span class="nav-icon" aria-hidden="true">◷</span> الأنشطة</a>
+        <a href="#reports" data-view="reports"><span class="nav-icon" aria-hidden="true">▤</span> التقارير</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="demo-pill"><span class="live-dot"></span> نسخة تجريبية</span>
+        <a class="back-link" href="index.html#systems">← العودة إلى موقع سنع</a>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <div class="topbar-title">
+          <button class="menu-toggle" id="menu-toggle" type="button" aria-label="فتح القائمة" aria-controls="sidebar" aria-expanded="false">☰</button>
+          <div><span class="breadcrumb">سنع CRM <span aria-hidden="true">/</span> معاينة تفاعلية</span><strong id="current-view-title">لوحة التحكم</strong></div>
+        </div>
+        <div class="topbar-actions"><span class="sample-label">بيانات توضيحية</span><span class="topbar-date" id="today-date"></span><span class="avatar" aria-label="المستخدم التجريبي: أحمد الشمري">أش</span></div>
+      </header>
+      <main id="demo-content" tabindex="-1" aria-live="polite"></main>
+    </div>
+  </div>
+</body>
+</html>

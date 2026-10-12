@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#052e2a">
+  <meta name="description" content="معاينة تفاعلية تجريبية لنظام سنع HR ببيانات توضيحية.">
+  <title>معاينة سنع HR | سنع</title>
+  <link rel="icon" href="public/assets/logo.png">
+  <link rel="stylesheet" href="hr-demo.css">
+  <script src="hr-demo.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#demo-content">انتقل إلى المحتوى</a>
+  <div class="demo-shell">
+    <aside class="sidebar" id="sidebar" aria-label="قائمة نظام الموارد البشرية">
+      <div class="sidebar-heading">
+        <a class="demo-brand" href="#dashboard" aria-label="سنع HR - لوحة التحكم">
+          <img src="public/assets/logo.png" width="125" height="47" alt="سنع">
+          <span>HR</span>
+        </a>
+        <p>الموارد البشرية</p>
+      </div>
+      <nav class="demo-nav" aria-label="التبويبات الرئيسية">
+        <a href="#dashboard" data-view="dashboard"><span class="nav-icon" aria-hidden="true">▦</span> لوحة التحكم</a>
+        <a href="#employees" data-view="employees"><span class="nav-icon" aria-hidden="true">♙</span> الموظفون</a>
+        <a href="#attendance" data-view="attendance"><span class="nav-icon" aria-hidden="true">◷</span> الحضور والانصراف</a>
+        <a href="#leaves" data-view="leaves"><span class="nav-icon" aria-hidden="true">▤</span> إدارة الإجازات</a>
+        <a href="#portal" data-view="portal"><span class="nav-icon" aria-hidden="true">◇</span> بوابة الموظف</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="demo-pill"><span class="live-dot"></span> نسخة تجريبية</span>
+        <a class="back-link" href="index.html#systems">← العودة إلى موقع سنع</a>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div class="topbar-title">
+          <button class="menu-toggle" id="menu-toggle" type="button" aria-label="فتح القائمة" aria-controls="sidebar" aria-expanded="false">☰</button>
+          <div><span class="breadcrumb">سنع HR <span aria-hidden="true">/</span> معاينة تفاعلية</span><strong id="current-view-title">لوحة التحكم</strong></div>
+        </div>
+        <div class="topbar-actions">
+          <span class="sample-label">بيانات توضيحية</span>
+          <span class="topbar-date" id="today-date"></span>
+          <span class="avatar" aria-label="المستخدم التجريبي: أحمد الشمري">أش</span>
+        </div>
+      </header>
+      <main id="demo-content" tabindex="-1" aria-live="polite"></main>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+@import url("hr-demo.css");
+
+.demo-brand span{font-size:10px}
+.task-list{display:grid;gap:9px}
+.task-item{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid var(--line)}
+.task-item:first-child{border-top:0;padding-top:0}
+.task-item .task-check{display:grid;place-items:center;flex:none;width:25px;height:25px;border:1px solid #b9d8ce;border-radius:8px;color:#0b8068;font-size:13px}
+.task-item .task-copy{min-width:0;flex:1}
+.task-item b{display:block;font-size:10px;line-height:1.7}
+.task-item small{display:block;font-size:9px;color:#82928c;line-height:1.7}
+.task-item .status{flex:none}
+.project-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.project-card{padding:18px;border:1px solid var(--line);border-radius:17px;background:white}
+.project-card h2{font-size:13px;margin:0 0 9px}
+.project-card p{min-height:45px;font-size:10px;line-height:1.8;color:#798b83;margin:0}
+.project-card .progress-row{margin-bottom:0}
+.board-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.board-column{min-height:280px;padding:13px;border-radius:16px;background:#e9f0ed}
+.board-column h2{margin:0 0 12px;font-size:12px;display:flex;justify-content:space-between}
+.board-column h2 span{color:#6e8278}
+.board-task{padding:13px;margin-bottom:9px;border-radius:13px;background:white;box-shadow:var(--shadow)}
+.board-task b{display:block;font-size:10px;line-height:1.7}
+.board-task small{font-size:9px;color:#83938c;line-height:1.7}
+.embed-mode .project-card{padding:13px}
+@media(max-width:760px){.project-list,.board-grid{grid-template-columns:1fr}.project-card p{min-height:0}.board-column{min-height:0}}

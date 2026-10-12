@@ -4,6 +4,8 @@ Arabic, responsive landing page implemented from the supplied Figma design and u
 
 The hero uses the supplied six-second `hero.mp4` video as a muted, looping background. `hero.png` remains visible while the video loads or if playback is unavailable. Visitors who prefer reduced motion see the still image.
 
+The supplied `Sana_BeSanaa_4K.mp4` opens as a full-screen welcome video and closes when it finishes or when the visitor selects **تخطي الفيديو**. The page requests autoplay with sound. Browsers may block audible autoplay, so the video continues muted with a button to enable sound; a visitor gesture may be required.
+
 ## Run
 
 Requires Node.js 18 or later. No dependencies or installation step.
@@ -28,6 +30,10 @@ Deploy `dist/` to any static host. Relative asset paths support hosting in a sub
 - `index.html`: semantic Arabic sections, accessible dialogs, navigation and inquiry form.
 - `styles.css`: source colors, typography, desktop layout and responsive breakpoints.
 - `app.js`: content, pricing selection, mobile menu, preview dialogs and inquiry download.
+- `hr-demo.html`, `hr-demo.css`, `hr-demo.js`: interactive HR preview shown in a compact modal over the landing page, with a blurred backdrop. Its dashboard, employees, attendance, leave requests and employee portal use illustrative local data. Employee search and request filtering work without a backend.
+- `tasks-demo.html`, `tasks-demo.css`, `tasks-demo.js`: matching interactive Tasks preview with a dashboard, projects, searchable and filterable task list, work board and personal tasks. All records are illustrative local data.
+- `crm-demo.html`, `crm-demo.css`, `crm-demo.js`: matching interactive CRM preview with a dashboard, searchable customer directory, filterable sales opportunities, activities and reports. All records are illustrative local data.
+- `erp-demo.html`, `erp-demo.css`, `erp-demo.js`: matching interactive ERP preview with a dashboard, sales, purchases, inventory, accounts and financial reports. Lists can be searched and filtered using illustrative local data.
 - `public/assets/`: local original images and decorative SVG assets from the provided export.
 - `scripts/`: dependency-free local server and static build.
 

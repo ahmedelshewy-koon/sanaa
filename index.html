@@ -11,6 +11,17 @@
   <script src="app.js" defer></script>
 </head>
 <body>
+  <div class="intro-screen" id="intro-screen" role="dialog" aria-modal="true" aria-label="فيديو ترحيب سنع">
+    <div class="intro-player">
+      <video class="intro-video" id="intro-video" playsinline preload="auto" aria-label="فيديو ترحيب سنع">
+        <source src="public/assets/Sana_BeSanaa_4K.mp4" type="video/mp4">
+      </video>
+      <div class="intro-controls">
+        <button class="intro-skip" id="intro-skip" type="button">تخطي الفيديو</button>
+        <button class="intro-sound" id="intro-sound" type="button" hidden>تشغيل الفيديو بالصوت</button>
+      </div>
+    </div>
+  </div>
   <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
   <header class="site-header container" data-node-id="300:242">
     <a class="brand" href="#home" aria-label="سنع — الرئيسية"><img src="public/assets/logo.png" width="150" height="56" alt="سنع"></a>
@@ -72,7 +83,7 @@
         <p>بدل ما تجمع الأرقام من أكثر من مكان، سنع تعطيك أهم مؤشرات شغلك في لوحة وحدة. تابع المبيعات، العملاء، الفريق والمهام، واعرف وش يحتاج تدخل منك قبل ما يصير مشكلة.</p>
         <button class="button" data-dialog="dashboard-dialog">استكشف لوحة التحكم</button>
       </div>
-      <div class="dashboard-device"><img class="device-screen" src="public/assets/dashboard.png" width="2094" height="4096" alt="معاينة لوحة تحكم سنع CRM" loading="lazy"><img class="device-frame" src="public/assets/dashboard-laptop.svg" width="1577" height="953" alt="" loading="lazy"><img class="device-notch" src="public/assets/dashboard-notch.svg" width="1577" height="953" alt="" loading="lazy"></div>
+      <div class="dashboard-device dashboard-welcome"><img src="public/assets/dashboard-welcome.png" width="1331" height="769" alt="شاشة الترحيب في سنع داخل لابتوب، تعرض اختيار أنظمة ERP وCRM وHR" loading="lazy"></div>
       <div class="dashboard-fade"></div>
     </section>
 
@@ -139,7 +150,23 @@
     </div>
   </footer>
 
-  <dialog id="dashboard-dialog" class="preview-dialog" aria-labelledby="preview-title"><button class="dialog-close" data-close aria-label="إغلاق">×</button><h2 id="preview-title">معاينة لوحة التحكم</h2><img src="public/assets/dashboard.png" width="2094" height="4096" alt="معاينة كاملة للوحة تحكم CRM"><p>معاينة التصميم</p></dialog>
+  <dialog id="dashboard-dialog" class="preview-dialog" aria-labelledby="preview-title"><button class="dialog-close" data-close aria-label="إغلاق">×</button><h2 id="preview-title">معاينة لوحة التحكم</h2><img src="public/assets/dashboard.png?v=crm" width="2094" height="4096" alt="معاينة كاملة للوحة تحكم CRM"><p>معاينة التصميم</p></dialog>
+  <dialog id="hr-demo-dialog" class="hr-demo-dialog" aria-labelledby="hr-demo-title">
+    <div class="hr-demo-dialog-head"><div><span>معاينة تفاعلية</span><h2 id="hr-demo-title">سنع HR</h2></div><button class="hr-demo-close" data-close type="button" aria-label="إغلاق معاينة HR">×</button></div>
+    <iframe src="hr-demo.html?embed=1#dashboard" title="معاينة تفاعلية لنظام سنع HR ببيانات توضيحية" loading="lazy"></iframe>
+  </dialog>
+  <dialog id="tasks-demo-dialog" class="hr-demo-dialog" aria-labelledby="tasks-demo-title">
+    <div class="hr-demo-dialog-head"><div><span>معاينة تفاعلية</span><h2 id="tasks-demo-title">سنع Tasks</h2></div><button class="hr-demo-close" data-close type="button" aria-label="إغلاق معاينة Tasks">×</button></div>
+    <iframe src="tasks-demo.html?embed=1#dashboard" title="معاينة تفاعلية لنظام سنع Tasks ببيانات توضيحية" loading="lazy"></iframe>
+  </dialog>
+  <dialog id="crm-demo-dialog" class="hr-demo-dialog" aria-labelledby="crm-demo-title">
+    <div class="hr-demo-dialog-head"><div><span>معاينة تفاعلية</span><h2 id="crm-demo-title">سنع CRM</h2></div><button class="hr-demo-close" data-close type="button" aria-label="إغلاق معاينة CRM">×</button></div>
+    <iframe src="crm-demo.html?embed=1#dashboard" title="معاينة تفاعلية لنظام سنع CRM ببيانات توضيحية" loading="lazy"></iframe>
+  </dialog>
+  <dialog id="erp-demo-dialog" class="hr-demo-dialog" aria-labelledby="erp-demo-title">
+    <div class="hr-demo-dialog-head"><div><span>معاينة تفاعلية</span><h2 id="erp-demo-title">سنع ERP</h2></div><button class="hr-demo-close" data-close type="button" aria-label="إغلاق معاينة ERP">×</button></div>
+    <iframe src="erp-demo.html?embed=1#dashboard" title="معاينة تفاعلية لنظام سنع ERP ببيانات توضيحية" loading="lazy"></iframe>
+  </dialog>
   <dialog id="info-dialog" aria-labelledby="info-title"><button class="dialog-close" data-close aria-label="إغلاق">×</button><h2 id="info-title"></h2><div id="info-content"></div></dialog>
   <dialog id="contact-dialog" aria-labelledby="contact-title"><button class="dialog-close" data-close aria-label="إغلاق">×</button><h2 id="contact-title">تواصل معنا</h2><p>جهّز تفاصيل احتياجك ونزّل طلب التواصل لمشاركته مع فريق سنع.</p><form id="contact-form"><label>الاسم<input name="name" autocomplete="name" required maxlength="100"></label><label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" dir="ltr" required maxlength="150"></label><label>الشركة<input name="company" autocomplete="organization" maxlength="100"></label><label>تفاصيل الطلب<textarea name="message" rows="4" required maxlength="3000"></textarea></label><button class="button" type="submit">تنزيل طلب التواصل</button><p id="form-status" role="status"></p></form></dialog>
 </body>

@@ -69,6 +69,16 @@ dialog{border:1px solid #d8e5e0;max-width:min(640px,calc(100vw - 32px));width:10
 /* The hero video shares the exported image's crop; the image remains its fallback. */
 .hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .hero-video.is-unavailable{display:none}
+.intro-screen{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:#031212a8;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#fff;overflow:hidden}
+.intro-screen[hidden],.intro-sound[hidden]{display:none}
+.intro-player{width:min(1000px,100%);max-height:calc(100dvh - 48px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #ffffff40;border-radius:24px;background:#031212;box-shadow:0 28px 100px #0009}
+.intro-video{display:block;width:100%;height:auto;min-height:0;max-height:calc(100dvh - 120px);aspect-ratio:16/9;object-fit:contain}
+.intro-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;direction:ltr}
+.intro-skip,.intro-sound{border:1px solid #ffffff80;border-radius:999px;background:#ffffff14;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;direction:rtl}
+.intro-sound{margin-left:auto;white-space:nowrap;background:var(--button)}
+.intro-skip:hover,.intro-sound:hover{filter:brightness(1.2)}
+body.intro-active{overflow:hidden}
+@media(max-width:640px){.intro-screen{padding:16px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}.intro-player{border-radius:18px}.intro-controls{padding:10px;gap:6px}.intro-skip,.intro-sound{padding:9px 11px;font-size:10px}}
 .header-tools{flex-direction:row;align-items:center}
 .header-tools .login-button{display:inline-flex;align-items:center;justify-content:center;width:243px;height:56px;padding:0 20px;border-radius:28px;background:var(--button);color:#fff;font-size:14px;font-weight:700;opacity:1;white-space:nowrap}
 .header-tools .login-button:hover{filter:brightness(1.1)}
@@ -86,6 +96,7 @@ dialog{border:1px solid #d8e5e0;max-width:min(640px,calc(100vw - 32px));width:10
 .detail-head{flex-wrap:nowrap;gap:6px}
 .detail-head>div{min-width:0;flex:1}
 .detail-head img{width:50px;height:48px}
+.product-icon img,.detail-head img,.plan-icon img{filter:grayscale(1) sepia(1) saturate(4) hue-rotate(100deg)}
 .detail-head h3{font-size:12px;line-height:17px}
 .detail-head p{font-size:9px;line-height:14px;margin-top:4px}
 .detail-label{order:initial;font-size:9px;color:#4baa8c;padding:5px 12px;border-color:#c7e9df}
@@ -107,6 +118,8 @@ dialog{border:1px solid #d8e5e0;max-width:min(640px,calc(100vw - 32px));width:10
 /* Product previews use the supplied dashboards as rounded panels. */
 .product-card .product-preview{height:160px;border:1px solid #9ad9cd;border-radius:16px;overflow:hidden;background:#eef2f0;box-shadow:0 8px 24px #0004}
 .product-preview img{display:block;width:100%;height:100%;object-fit:cover;object-position:right top}
+@media(min-width:1201px){.products>.container{max-width:none}.product-card h3{font-size:15px;line-height:22px}.product-card p{font-size:11px;line-height:17px}.product-link{font-size:15px}}
+@media(min-width:641px) and (max-width:1200px){.product-card h3{font-size:14px;line-height:20px}.product-card p{font-size:10px;line-height:15px}.product-link{font-size:14px}}
 @media(hover:hover) and (pointer:fine){.product-card .product-preview{transition:transform .7s cubic-bezier(.22,1,.36,1)}.product-card:hover .product-preview,.product-card:focus-visible .product-preview{transform:translate(-50%,-52px)}}
 @media(prefers-reduced-motion:reduce){.product-card:hover .product-preview,.product-card:focus-visible .product-preview{transform:translateX(-50%)}}
 
@@ -115,3 +128,34 @@ dialog{border:1px solid #d8e5e0;max-width:min(640px,calc(100vw - 32px));width:10
 .site-footer{background:var(--dark);border-radius:0;padding:110px 0 0}
 .footer-panel{background:var(--shell);border-radius:100px 100px 0 0;padding:12px 0}
 @media(max-width:640px){.site-footer{padding-top:64px}.footer-panel{border-radius:40px 40px 0 0;padding:24px 0 16px}}
+
+/* In-page HR preview: a compact window over the landing page. */
+.hr-demo-dialog{width:min(1120px,calc(100vw - 80px));max-width:none;height:min(760px,calc(100dvh - 80px));max-height:none;padding:0;overflow:hidden;border:1px solid #c6dcd4;border-radius:26px;background:#f0f4f3;box-shadow:0 30px 110px #001b1bb3}
+.hr-demo-dialog::backdrop{background:#011b1bb3;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.hr-demo-dialog-head{height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 22px;background:#fff;border-bottom:1px solid #e1eae6}
+.hr-demo-dialog-head span{display:block;color:#188a70;font-size:10px;font-weight:700;margin-bottom:2px}
+.hr-demo-dialog-head h2{margin:0;font-size:18px;line-height:1.3;color:#073b32}
+.hr-demo-close{display:grid;place-items:center;width:36px;height:36px;flex:none;border:0;border-radius:50%;background:#e8f5f0;color:#075044;font:normal 26px/1 Arial,sans-serif}
+.hr-demo-close:hover{background:#d2eee3}
+.hr-demo-dialog iframe{display:block;width:100%;height:calc(100% - 64px);border:0;background:#f0f4f3}
+body.hr-modal-open{overflow:hidden}
+@media(max-width:640px){.hr-demo-dialog{width:calc(100vw - 24px);height:min(720px,calc(100dvh - 32px));border-radius:18px}.hr-demo-dialog-head{height:54px;padding:0 15px}.hr-demo-dialog-head h2{font-size:15px}.hr-demo-dialog iframe{height:calc(100% - 54px)}}
+
+/* Keep the supplied welcome artwork intact inside the dashboard showcase. */
+.dashboard{height:auto}
+.dashboard-device.dashboard-welcome{position:relative;top:auto;left:auto;transform:none;width:min(1331px,100%);max-width:1331px;aspect-ratio:auto;margin:48px auto 0}
+.dashboard-welcome>img{display:block;width:100%;height:auto;clip-path:inset(1.6% 0 0)}
+.dashboard-fade{display:none}
+@media(max-width:640px){.dashboard{min-height:0}.dashboard-device.dashboard-welcome{width:calc(100% + 32px);margin-inline:-16px;margin-top:32px}}
+
+/* Larger footer labels and links. */
+.footer-links{padding-block:30px}
+.footer-links h3{font-size:18px;line-height:26px;margin-bottom:10px;font-weight:600}
+.footer-links a,.footer-links button{font-size:14px;line-height:24px;margin-bottom:8px}
+.copyright{font-size:12px;line-height:20px}
+@media(max-width:640px){
+  .footer-links{gap:16px;padding-block:24px}
+  .footer-links h3{font-size:16px;line-height:23px}
+  .footer-links a,.footer-links button{font-size:13px;line-height:22px}
+  .copyright{font-size:11px;line-height:18px}
+}

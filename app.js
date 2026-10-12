@@ -6,8 +6,10 @@ const products = [
   { id: 'CRM', icon: 'crm-icon.png', preview: 'crm-card-preview.png', previewWidth: 1600, previewHeight: 899, detailIcon: 'crm-detail.png', title: 'العملاء، المبيعات والفرص', short: 'رتّب عملاءك، تابع فرص البيع، واعرف وين وصلت كل صفقة بدون ملفات ورسائل متفرقة.', description: 'تتبع كل تفاعل، إدارة مراحل مسار الصفقات، وتعميق العلاقات التجارية.', features: ['المتابعات والأنشطة', 'الفرص البيعية', 'سجل تواصل كامل', 'مراحل المبيعات', 'إدارة العملاء', 'تقارير أداء المبيعات'] },
   { id: 'HR', icon: 'hr-icon.png', preview: 'hr-card-preview.png', previewWidth: 1672, previewHeight: 941, detailIcon: 'hr-detail.png', title: 'فريقك يستاهل إدارة أسهل', short: 'كل تفاصيل فريقك من الموظفين والحضور إلى الإجازات والطلبات، مرتبة قدامك.', description: 'كل تفاصيل فريقك من الموظفين والحضور إلى الإجازات والطلبات، مرتبة قدامك.', features: ['ملفات الموظفين', 'الحضور والانصراف', 'الإجازات', 'الرواتب', 'الطلبات والموافقات', 'تقييم الأداء'] },
   { id: 'ERP', icon: 'erp-icon.png', preview: 'erp-card-preview.png', previewWidth: 1600, previewHeight: 812, detailIcon: 'erp-detail.png', title: 'كل عملياتك المالية والتشغيلية', short: 'المبيعات، المشتريات، المخزون والحسابات في نظام واحد يخليك شايف عملياتك بشكل أوضح.', description: 'سنع ERP يساعدك تعرف وش يصير في شركتك لحظة بلحظة.', features: ['إدارة المبيعات والمشتريات', 'المخزون والمنتجات', 'الفواتير والحسابات', 'المصروفات والإيرادات', 'التقارير المالية', 'متابعة العمليات'] },
-  { id: 'TASKS', icon: 'tasks-icon.png', preview: 'tasks-card-preview.png', previewWidth: 1672, previewHeight: 941, detailIcon: 'crm-detail.png', title: 'خلّ الشغل واضح للجميع', short: 'وزّع المهام، حدّد الأولويات، وتابع إنجاز الفريق بدون ما يضيع الشغل بين المحادثات.', description: 'مع سنع Tasks كل شخص يعرف وش عليه، وش الأولوية، ومتى لازم يخلص.', features: ['إنشاء وتوزيع المهام', 'تحديد الأولويات', 'المواعيد النهائية', 'متابعة حالة العمل', 'المشاريع والفرق', 'التعليقات والتحديثات'] }
+  { id: 'TASKS', icon: 'tasks-icon.png', preview: 'tasks-card-preview.png', previewWidth: 1672, previewHeight: 941, detailIcon: 'tasks-icon.png', title: 'خلّ الشغل واضح للجميع', short: 'وزّع المهام، حدّد الأولويات، وتابع إنجاز الفريق بدون ما يضيع الشغل بين المحادثات.', description: 'مع سنع Tasks كل شخص يعرف وش عليه، وش الأولوية، ومتى لازم يخلص.', features: ['إنشاء وتوزيع المهام', 'تحديد الأولويات', 'المواعيد النهائية', 'متابعة حالة العمل', 'المشاريع والفرق', 'التعليقات والتحديثات'] }
 ];
+const productDemos = { CRM:'crm-demo', HR:'hr-demo', ERP:'erp-demo', TASKS:'tasks-demo' };
+const demoDialogIds = new Set(Object.values(productDemos).map(name => `${name}-dialog`));
 const benefits = [
   ['simple', 'تجربة استخدام بسيطة', 'واجهة واضحة ومريحة ترفع إنتاجية موظفيك وتقلل وقت التدريب للصفر تقريباً.'],
   ['connected', 'بيانات مترابطة بين الأنظمة', 'أي تغيير في قسم ينعكس على البقية مباشرة وبدون تكرار الإدخال.'],
@@ -17,7 +19,7 @@ const benefits = [
   ['permissions', 'صلاحيات حسب كل مستخدم', 'تحكم دقيق في من يرى البيانات المالية، ملفات العملاء، أو تفاصيل الموظفين.']
 ];
 document.querySelector('#product-grid').innerHTML = products.map(p => `
-  <a class="product-card" href="${p.id === 'HR' ? 'https://hr.sanaasystems.com/#top' : `#detail-${p.id}`}" aria-label="استكشف ${p.id}">
+  <a class="product-card" href="${productDemos[p.id]}.html" data-dialog="${productDemos[p.id]}-dialog" aria-label="استكشف ${p.id}">
     <div class="product-card-top"><div class="product-icon"><img src="${asset(p.icon)}" width="48" height="41" alt="" loading="lazy"></div><div><h3>${p.id}</h3><p>${p.short}</p></div></div>
     <span class="product-link">استكشف ${p.id}<img src="${asset('arrow.svg')}" width="16" height="16" alt="" loading="lazy"></span>
     <div class="product-device product-preview"><img src="${asset(p.preview)}" width="${p.previewWidth}" height="${p.previewHeight}" alt="" loading="lazy"></div>
@@ -89,17 +91,18 @@ updateSummary();
 let dialogTrigger = null;
 function openDialog(id, trigger) {
   dialogTrigger = trigger || document.activeElement;
+  if(demoDialogIds.has(id)) document.body.classList.add('hr-modal-open');
   document.getElementById(id).showModal();
 }
 document.querySelectorAll('dialog').forEach(dialog => {
   dialog.addEventListener('click',e=> { if(e.target===dialog) { const r=dialog.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) dialog.close(); } });
-  dialog.addEventListener('close',()=>dialogTrigger?.focus());
+  dialog.addEventListener('close',()=>{ if(demoDialogIds.has(dialog.id)) document.body.classList.remove('hr-modal-open'); dialogTrigger?.focus(); });
 });
 document.addEventListener('click', e => {
   const close = e.target.closest('[data-close]');
   if(close) close.closest('dialog').close();
   const trigger = e.target.closest('[data-dialog]');
-  if(trigger) openDialog(trigger.dataset.dialog,trigger);
+  if(trigger) { if(trigger.matches('a')) e.preventDefault(); openDialog(trigger.dataset.dialog,trigger); }
   const contact = e.target.closest('[data-contact]');
   if(contact) openContact(contact);
   const info = e.target.closest('[data-info]');
@@ -163,11 +166,53 @@ const observer=new IntersectionObserver(entries=> {
 
 const heroVideo=document.querySelector('.hero-video');
 const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+const introScreen=document.querySelector('#intro-screen');
+const introVideo=document.querySelector('#intro-video');
+const introSound=document.querySelector('#intro-sound');
+const introSkip=document.querySelector('#intro-skip');
+const pageElements=[...document.body.children].filter(element=>element!==introScreen);
+document.body.classList.add('intro-active');
+pageElements.forEach(element=>element.inert=true);
+introSkip.focus({preventScroll:true});
+function closeIntro() {
+  if(introScreen.hidden) return;
+  introVideo.pause();
+  introScreen.hidden=true;
+  document.body.classList.remove('intro-active');
+  pageElements.forEach(element=>element.inert=false);
+  document.querySelector('.brand').focus({preventScroll:true});
+  syncHeroVideo();
+}
+introSkip.addEventListener('click',closeIntro);
+introVideo.addEventListener('ended',closeIntro);
+introVideo.addEventListener('error',closeIntro);
+introSound.addEventListener('click',async()=> {
+  introVideo.muted=false;
+  try {
+    await introVideo.play();
+    introSound.hidden=true;
+  } catch {
+    introSound.textContent='اضغط لتشغيل الفيديو';
+  }
+});
+async function playIntro() {
+  try {
+    introVideo.muted=false;
+    await introVideo.play();
+  } catch {
+    if(introScreen.hidden) return;
+    introVideo.muted=true;
+    introSound.hidden=false;
+    try { await introVideo.play(); }
+    catch { introSound.textContent='اضغط لتشغيل الفيديو بالصوت'; }
+  }
+}
 function syncHeroVideo() {
-  if(reducedMotion.matches || document.hidden) { heroVideo.pause(); return; }
+  if(!introScreen.hidden || reducedMotion.matches || document.hidden) { heroVideo.pause(); return; }
   heroVideo.play().catch(()=>heroVideo.classList.add('is-unavailable'));
 }
 heroVideo.addEventListener('error',()=>heroVideo.classList.add('is-unavailable'));
 reducedMotion.addEventListener('change',syncHeroVideo);
 document.addEventListener('visibilitychange',syncHeroVideo);
 syncHeroVideo();
+playIntro();
