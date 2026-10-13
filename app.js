@@ -1,6 +1,15 @@
-// All content and displayed prices below come from the supplied Figma design.
+// Content below comes from the supplied Figma design; plans and prices come
+// live from Sana when it answers (see "Live pricing from Sana").
 // Set a real contact URL when the site is connected to your production service.
-const config = { contactUrl: null };
+// appUrl: where "تسجيل الدخول" and the plan buttons go. apiBase: where the
+// plans are read — sanaasystems.com/api reaches Sana's server, so '' (same
+// site). Served from localhost, both point at a local Sana.
+const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+const config = {
+  contactUrl: null,
+  appUrl: local ? 'http://localhost:5180' : 'https://app.sanaasystems.com',
+  apiBase: local ? 'http://localhost:3010' : '',
+};
 const asset = name => `public/assets/${name}`;
 const products = [
   { id: 'CRM', icon: 'crm-icon.png', preview: 'crm-card-preview.png', previewWidth: 1600, previewHeight: 899, detailIcon: 'crm-detail.png', title: 'العملاء، المبيعات والفرص', short: 'رتّب عملاءك، تابع فرص البيع، واعرف وين وصلت كل صفقة بدون ملفات ورسائل متفرقة.', description: 'تتبع كل تفاعل، إدارة مراحل مسار الصفقات، وتعميق العلاقات التجارية.', features: ['المتابعات والأنشطة', 'الفرص البيعية', 'سجل تواصل كامل', 'مراحل المبيعات', 'إدارة العملاء', 'تقارير أداء المبيعات'] },
@@ -87,6 +96,95 @@ document.querySelectorAll('[data-filter]').forEach(button => button.addEventList
   updateSummary();
 }));
 updateSummary();
+
+// Live pricing from Sana. The design's pricing above stays as it is until
+// Sana answers (and if it never does). Once GET /api/public/plans returns
+// plans, the section switches to Sana's own pricing cards: one monthly /
+// yearly switch, each tab shows that system's plans then the bundles that
+// include it, the "الأكثر طلباً" plan framed, and every card has its own
+// button straight into Sana on that plan. Change plans in Sana's admin; this
+// page needs no edit.
+const SYSTEM_KEYS = { CRM:'crm', HR:'hr', ERP:'erp', TASKS:'tasks' };
+const SYSTEM_NAMES = { crm:'CRM', hr:'HR', erp:'ERP', tasks:'Tasks' };
+const live = { plans: null, cycle: 'monthly' };
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => Number(n).toLocaleString('en');
+const saving = p => (p.priceMonthly && p.priceYearly && p.priceYearly < p.priceMonthly * 12 ? Math.round((1 - p.priceYearly / (p.priceMonthly * 12)) * 100) : 0);
+const livePrice = p => (live.cycle === 'yearly' ? p.priceYearly : p.priceMonthly);
+const checkIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>';
+const heartIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2 0 3.4 1.1 4.3 2.4.9-1.3 2.3-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+
+function liveCard(p, offset) {
+  const price = livePrice(p);
+  const save = live.cycle === 'yearly' ? saving(p) : 0;
+  const features = [...(p.isBundle ? [`<li class="strong">${checkIcon}<span>يشمل: <bdi>${p.productKeys.map(k => SYSTEM_NAMES[k] || k).join(' · ')}</bdi></span></li>`] : []), ...(p.features?.ar || []).map(f => `<li>${checkIcon}<span>${esc(f)}</span></li>`)];
+  const cta = price == null && !p.trialDays ? 'تواصل معنا' : p.trialDays ? 'ابدأ التجربة المجانية' : 'اشترك الآن';
+  return `
+  <div class="live-plan ${p.isFeatured ? 'featured' : ''} ${offset ? 'offset' : ''}">
+    ${p.isFeatured ? `<div class="live-band">الأكثر طلباً ${heartIcon}</div>` : ''}
+    <article class="live-card">
+      <h3>${esc(p.name?.ar)}</h3>
+      ${p.desc?.ar ? `<p class="live-desc">${esc(p.desc.ar)}</p>` : ''}
+      <div class="live-price">${price == null ? '<strong class="on-request">السعر عند الطلب</strong>' : price === 0 ? '<strong>مجاناً</strong>' : `<strong>${money(price)}</strong><span>ر.س / ${live.cycle === 'yearly' ? 'سنة' : 'شهر'}</span>`}</div>
+      <div class="live-chips">${save > 0 ? `<span class="ok">وفّر ${save}%</span>` : ''}${p.trialDays ? `<span class="info">تجربة مجانية ${p.trialDays} يوم</span>` : ''}</div>
+      <hr>
+      <ul>${features.join('')}</ul>
+      <button class="live-cta" data-live-plan="${esc(p.id)}">${cta}</button>
+    </article>
+  </div>`;
+}
+// A tab with no plans in Sana yet (Tasks today): one card that leads to the contact form.
+const soonCard = () => `
+  <div class="live-plan">
+    <article class="live-card">
+      <h3>سنع ${esc(SYSTEM_NAMES[SYSTEM_KEYS[state.product]] || state.product)}</h3>
+      <p class="live-desc">تواصل معنا ونرتّب لك الباقة المناسبة.</p>
+      <div class="live-price"><strong class="on-request">السعر عند الطلب</strong></div>
+      <div class="live-chips"></div><hr><ul></ul>
+      <button class="live-cta" data-live-contact>تواصل معنا</button>
+    </article>
+  </div>`;
+
+function renderLive() {
+  if(!live.plans) return;
+  const key = SYSTEM_KEYS[state.product];
+  const plans = live.plans.filter(p => p.productKeys.includes(key)).sort((a,b) => a.isBundle - b.isBundle);
+  const anyFeatured = plans.some(p => p.isFeatured);
+  const best = Math.max(0, ...live.plans.map(saving));
+  document.querySelector('#live-cycle').innerHTML = ['monthly','yearly'].map(c => `<button type="button" data-live-cycle="${c}" class="${live.cycle===c?'active':''}" aria-pressed="${live.cycle===c}">${c==='monthly'?'شهري':'سنوي'}${c==='yearly'&&best>0?` <span>وفّر حتى ${best}%</span>`:''}</button>`).join('');
+  const grid = document.querySelector('#pricing-grid');
+  const n = Math.max(1, plans.length);
+  grid.style.setProperty('--plans', String(Math.min(n, 4)));
+  grid.style.setProperty('--plans-md', String(Math.min(n, n === 4 ? 2 : 3)));
+  grid.style.setProperty('--plans-sm', String(Math.min(n, 2)));
+  grid.innerHTML = plans.length ? plans.map(p => liveCard(p, anyFeatured && !p.isFeatured)).join('') : soonCard();
+}
+function goLive(plans) {
+  live.plans = plans;
+  const section = document.querySelector('#pricing');
+  section.classList.add('live');
+  const cycle = document.createElement('div');
+  cycle.id = 'live-cycle'; cycle.className = 'live-cycle'; cycle.setAttribute('role','group'); cycle.setAttribute('aria-label','دورة الاشتراك');
+  section.querySelector('.product-filter').after(cycle);
+  renderLive();
+}
+document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', renderLive));
+document.querySelector('#pricing').addEventListener('click', e => {
+  const c = e.target.closest('[data-live-cycle]');
+  if(c) { live.cycle = c.dataset.liveCycle; renderLive(); return; }
+  if(e.target.closest('[data-live-contact]')) { openContact(e.target.closest('[data-live-contact]'), `أرغب في معرفة باقات سنع ${state.product}.`); return; }
+  const b = e.target.closest('[data-live-plan]');
+  if(!b) return;
+  const plan = live.plans.find(p => String(p.id) === b.dataset.livePlan);
+  if(plan && livePrice(plan) == null && !plan.trialDays) { openContact(b, `أرغب في الاشتراك في باقة ${plan.name?.ar}.\nالدورة المطلوبة: ${live.cycle==='yearly'?'سنوية':'شهرية'}`); return; }
+  // system: the tab's system — if the plan is gone by then, Sana opens that system's plans.
+  window.location.assign(`${config.appUrl}/?plan=${encodeURIComponent(b.dataset.livePlan)}&cycle=${live.cycle}&system=${SYSTEM_KEYS[state.product]}`);
+});
+document.querySelectorAll('.login-button').forEach(a => { a.href = config.appUrl; });
+fetch(`${config.apiBase}/api/public/plans`, { signal: AbortSignal.timeout(8000) })
+  .then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+  .then(({ plans }) => { if(Array.isArray(plans) && plans.length) goLive(plans); })
+  .catch(() => { /* keep the design's pricing */ });
 
 let dialogTrigger = null;
 function openDialog(id, trigger) {

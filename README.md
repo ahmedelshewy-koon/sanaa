@@ -49,9 +49,11 @@ Alexandria is bundled locally under `public/fonts/`, including its SIL Open Font
 
 This is a front-end landing page. It does not implement authentication, a live dashboard, payment processing or a contact backend. The dashboard button opens the original design preview. The account icon opens system links.
 
-The source design repeats the same complete-platform plan four times at **549 SAR/month**. These are preserved as visual instances, rather than inventing plan names or prices. The product tabs update the selected product and its icon. Selection is exclusive. Annual billing is a request preference; no annual price or discount is assumed.
+**Pricing comes from Sana.** `app.js` reads the published plans from Sana's public endpoint `GET /api/public/plans` (on this site, since `sanaasystems.com/api` reaches Sana's server). Once they load, the section shows Sana's own pricing cards: one monthly / yearly switch (with the yearly saving), each product tab lists that system's own plans and then the bundles that include it, the "most popular" plan is framed, and each card shows its price, trial days and features with its own button. That button opens Sana at `https://app.sanaasystems.com/?plan=<id>&cycle=monthly|yearly&system=crm|hr|erp`, which signs the visitor up or in and opens that plan's subscription step. The design's summary bar and single **اشترك** button are hidden in this mode. Change plans in Sana's admin; the page needs no edit. Addresses are in `config` at the top of `app.js`; served from `localhost`, they point at a local Sana (`http://localhost:3010` API, `http://localhost:5180` app).
 
-The subscribe button prepares an inquiry. The form downloads a UTF-8 text request locally and does not send user information. Set `config.contactUrl` in `app.js` to your real contact page to redirect contact and subscription calls to action. Replace the inquiry handler with a real backend when available.
+If Sana does not answer, the design's pricing stays exactly as supplied (the same complete-platform plan four times at **549 SAR/month**, **اشترك** opens the contact form). A tab with no plans in Sana (Tasks today) shows one card leading to the contact form, as does a plan without a price.
+
+The contact form prepares an inquiry. The form downloads a UTF-8 text request locally and does not send user information. Set `config.contactUrl` in `app.js` to your real contact page to redirect contact and subscription calls to action. Replace the inquiry handler with a real backend when available.
 
 The footer's 2024 copyright is kept from the supplied design. Update it after confirming ownership and the intended launch year.
 

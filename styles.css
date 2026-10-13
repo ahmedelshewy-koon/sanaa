@@ -159,3 +159,39 @@ body.hr-modal-open{overflow:hidden}
   .footer-links a,.footer-links button{font-size:13px;line-height:22px}
   .copyright{font-size:11px;line-height:18px}
 }
+
+/* Live pricing from Sana (app.js "Live pricing from Sana"): Sana's own plan cards. */
+.pricing.live .price-summary,.pricing.live #subscribe{display:none}
+.live-cycle{display:flex;justify-content:center;gap:4px;width:max-content;max-width:100%;margin:-24px auto 40px;padding:4px;background:#fff;border-radius:999px;box-shadow:0 2px 8px #0000000f}
+.live-cycle button{display:flex;align-items:center;gap:8px;height:40px;padding:0 22px;border-radius:999px;background:transparent;font-size:13px;font-weight:700;color:#666}
+.live-cycle button.active{background:var(--button);color:#fff}
+.live-cycle button span{padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;background:#e3f4ec;color:#1c7b61}
+.live-cycle button.active span{background:#ffffff33;color:#fff}
+.pricing.live .pricing-grid{direction:rtl;grid-template-columns:repeat(var(--plans,4),minmax(0,300px));justify-content:center;align-items:stretch;gap:20px}
+.live-plan{display:flex;flex-direction:column;border-radius:24px}
+.live-plan.offset{margin-top:40px}
+.live-plan.featured{padding:2px;background:linear-gradient(160deg,#3fae86 0%,#1e7b61 45%,#084237 100%);box-shadow:0 22px 50px -24px #084237a6}
+.live-band{display:flex;align-items:center;gap:6px;height:40px;padding:0 20px;color:#fff;font-size:14px;font-weight:800}
+.live-card{flex:1;display:flex;flex-direction:column;background:#fff;border:1px solid #e5e5e5;border-radius:22px;padding:24px;box-shadow:0 6px 24px -16px #0000002e}
+.live-plan.featured .live-card{border:0;box-shadow:none}
+.live-card h3{font-size:18px;line-height:1.5;font-weight:800}
+.live-desc{margin-top:4px;font-size:12px;line-height:1.7;color:#6b6b6b}
+.live-price{margin-top:16px;min-height:48px;display:flex;align-items:baseline;flex-wrap:wrap;gap:6px}
+.live-price strong{font-size:40px;line-height:1;font-weight:800;color:var(--ink)}
+.live-price strong.on-request{font-size:20px}
+.live-price span{font-size:12px;font-weight:700;color:#6b6b6b}
+.live-chips{margin-top:8px;min-height:22px;display:flex;flex-wrap:wrap;gap:6px}
+.live-chips span{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.live-chips .ok{background:#e3f4ec;color:#1c7b61}
+.live-chips .info{background:#e6f0fb;color:#1d5fa8}
+.live-card hr{border:0;height:1px;background:#ececec;margin:16px 0}
+.live-card ul{list-style:none;margin:0 0 24px;padding:0;display:grid;gap:10px}
+.live-card li{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5;color:#3d3d3d;font-weight:500}
+.live-card li svg{flex-shrink:0;margin-top:2px;color:#1e7b61}
+.live-card li.strong{font-weight:700}
+.live-cta{margin-top:auto;width:100%;height:44px;border-radius:999px;font-size:14px;font-weight:700;background:transparent;color:#1e7b61;border:1.5px solid #1e7b61;transition:filter .2s,transform .2s}
+.live-plan.featured .live-cta{background:var(--button);color:#fff;border:0;box-shadow:0 10px 22px -12px #084237b3}
+.live-cta:hover{filter:brightness(1.1);transform:translateY(-1px)}
+@media(max-width:1200px){.pricing.live .pricing-grid{grid-template-columns:repeat(var(--plans-md,3),minmax(0,300px))}}
+@media(max-width:900px){.pricing.live .pricing-grid{grid-template-columns:repeat(var(--plans-sm,2),minmax(0,1fr))}}
+@media(max-width:640px){.pricing.live .pricing-grid{grid-template-columns:1fr}.live-plan.offset{margin-top:0}.live-cycle{margin-top:-16px}}
