@@ -34,8 +34,7 @@ pending=("${files[@]:${#applied[@]}}")
 # Scan only not-yet-applied files; older historical migrations contain
 # deliberate DROP NOT NULL / UPDATE backfills and are never replayed.
 for name in "${pending[@]}"; do
-  if sed '/^[[:space:]]*--/d' "$src/$name" |
-     grep -Eiq '(^|[[:space:];])(DROP|TRUNCATE|DELETE|UPDATE)([[:space:];]|$)'; then
+  if grep -Eiq '(^|[[:space:];])(DROP|TRUNCATE|DELETE|UPDATE)([[:space:];]|$)' < <(sed '/^[[:space:]]*--/d' "$src/$name"); then
     echo "Migration requires manual destructive-SQL review: $name" >&2
     exit 1
   fi
