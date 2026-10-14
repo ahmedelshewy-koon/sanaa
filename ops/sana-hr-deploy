@@ -66,6 +66,14 @@ PY
   mv "$stage" "$release"
   stage=""
 fi
+# Require the exact schema contract packaged with the candidate immutable
+# HR release. CI may build code successfully while live SQL is incompatible.
+[[ -s "$release/ops/hr-schema-contract.json" &&
+   -s "$release/ops/hr-schema-audit.sh" ]] || {
+  echo "HR release has no version-controlled full schema audit" >&2; exit 1;
+}
+bash "$release/ops/hr-schema-audit.sh" "$release/ops/hr-schema-contract.json"
+echo "Full HR database compatibility: OK"
 if [[ ! -L "$app" ]]; then
   old="$root/app.previous-github-actions-$(date -u +%Y%m%dT%H%M%SZ)"
   mv "$app" "$old"
