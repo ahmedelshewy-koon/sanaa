@@ -22,12 +22,6 @@ mapfile -t files < <(find "$src" -maxdepth 1 -type f -regextype posix-extended -
 (( ${#files[@]} >= 3 )) || { echo "Migration set incomplete" >&2; exit 1; }
 for name in "${files[@]}"; do
   [[ "$name" =~ ^[0-9]{4}_[a-z0-9_]+\.sql$ ]] || exit 1
-  # Any destructive data/schema change must be explicitly reviewed first.
-  if sed '/^[[:space:]]*--/d' "$src/$name" |
-     grep -Eiq '(^|[[:space:];])(DROP|TRUNCATE|DELETE|UPDATE)([[:space:];]|$)'; then
-    echo "Migration requires manual destructive-SQL review: $name" >&2
-    exit 1
-  fi
 done
 
 mapfile -t applied < <(docker exec "$CT" psql -X -U "$USER" -d "$DB" -At -v ON_ERROR_STOP=1 -c 'SELECT name FROM public.task_migrations ORDER BY name')
@@ -37,6 +31,16 @@ for ((i=0; i<${#applied[@]}; i++)); do
   }
 done
 pending=("${files[@]:${#applied[@]}}")
+# Scan only not-yet-applied files; older historical migrations contain
+# deliberate DROP NOT NULL / UPDATE backfills and are never replayed.
+for name in "${pending[@]}"; do
+  if sed '/^[[:space:]]*--/d' "$src/$name" |
+     grep -Eiq '(^|[[:space:];])(DROP|TRUNCATE|DELETE|UPDATE)([[:space:];]|$)'; then
+    echo "Migration requires manual destructive-SQL review: $name" >&2
+    exit 1
+  fi
+done
+
 if (( ${#pending[@]} == 0 )); then
   echo "TASKS_SCHEMA_CURRENT: ${#applied[@]} migrations already applied"
   exit 0
