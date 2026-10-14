@@ -108,6 +108,16 @@ else
     legacy_moved=1
     ln -s "$prior" "$appdir"
   fi
+  # systemd ReadWritePaths resolves /opt/sanaa-tasks/app/.next/cache before
+  # ExecStart; a missing directory makes service startup fail with 226/NAMESPACE.
+  # Next.js standalone output does not package the runtime cache directory.
+  [[ -s "$release/server.js" && -d "$release/.next" ]] || {
+    echo "Tasks release missing standalone runtime" >&2; exit 1;
+  }
+  install -d -m 0750 -o sanaatasks -g sanaatasks "$release/.next/cache"
+  [[ -d "$release/.next/cache" && -w "$release/.next/cache" ]] || {
+    echo "Cannot prepare writable Next.js cache" >&2; exit 1;
+  }
   [[ -L "$appdir" ]] || { echo "Tasks app must be a symlink or a directory" >&2; exit 1; }
   prior="$(readlink -f "$appdir")"
   [[ -d "$prior" ]] || { echo "Previous Tasks release missing" >&2; exit 1; }
