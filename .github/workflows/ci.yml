@@ -23,9 +23,12 @@ jobs:
         run: npm run build
       - name: JavaScript tests
         run: node --test tests/*.test.mjs
+      - name: Validate deployment shell scripts
+        run: bash -n ops/bootstrap-vps.sh ops/sana-deploy-release ops/sana-core-deploy ops/install-core-deployer.sh
       - name: Check required output
         run: |
           test -s dist/index.html
           test -s dist/app.js
           test -s dist/styles.css
           test -d dist/public/assets
+
