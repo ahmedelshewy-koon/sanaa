@@ -1,0 +1,50 @@
+name: Deploy Landing to production
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sanaa-landing-production
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and test
+        run: |
+          npm run build
+          node --test tests/*.test.mjs
+      - name: Prepare immutable release
+        run: |
+          test -s dist/index.html
+          tar -C dist -czf "landing-${GITHUB_SHA}.tar.gz" .
+      - name: Configure verified SSH transport
+        env:
+          DEPLOY_KEY: ${{ secrets.SANA_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SANA_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test -n "$DEPLOY_KEY" || { echo "Missing SANA_DEPLOY_KEY secret"; exit 1; }
+          test -n "$KNOWN_HOSTS" || { echo "Missing SANA_DEPLOY_KNOWN_HOSTS secret"; exit 1; }
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" >/dev/null
+      - name: Upload and activate release
+        run: |
+          set -euo pipefail
+          SCP=(scp -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=15)
+          SSH=(ssh -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=15)
+          "${SCP[@]}" "landing-${GITHUB_SHA}.tar.gz" \
+            "sana-deploy@209.42.23.12:/home/sana-deploy/incoming/landing-${GITHUB_SHA}.tar.gz"
+          "${SSH[@]}" sana-deploy@209.42.23.12 \
+            "sudo -n /usr/local/sbin/sana-deploy-release landing ${GITHUB_SHA}"
