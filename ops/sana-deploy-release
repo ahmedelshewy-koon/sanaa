@@ -114,6 +114,16 @@ else
   [[ -s "$release/server.js" && -d "$release/.next" ]] || {
     echo "Tasks release missing standalone runtime" >&2; exit 1;
   }
+  # Back up and test each pending additive SQL migration on a temporary DB
+  # cloned from production BEFORE activating a new Tasks release.
+  [[ -s "$release/drizzle/0000_early_rogue.sql" &&
+     -s "$release/drizzle/0010_site_dispatch.sql" ]] || {
+    echo "Missing Tasks migration files in immutable release" >&2; exit 1;
+  }
+  [[ -x /usr/local/sbin/sana-tasks-db-upgrade ]] || {
+    echo "Tasks migration gate not installed" >&2; exit 1;
+  }
+  /usr/local/sbin/sana-tasks-db-upgrade "$release/drizzle"
   install -d -m 0750 -o sanaatasks -g sanaatasks "$release/.next/cache"
   [[ -d "$release/.next/cache" && -w "$release/.next/cache" ]] || {
     echo "Cannot prepare writable Next.js cache" >&2; exit 1;

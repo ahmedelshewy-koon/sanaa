@@ -24,7 +24,7 @@ jobs:
       - name: JavaScript tests
         run: node --test tests/*.test.mjs
       - name: Validate deployment shell scripts
-        run: bash -n ops/bootstrap-vps.sh ops/sana-deploy-release ops/sana-core-deploy ops/install-core-deployer.sh ops/install-core-hr-deployers.sh ops/sana-hr-deploy ops/configure-github-secrets.sh
+        run: bash -n ops/bootstrap-vps.sh ops/sana-deploy-release ops/sana-core-deploy ops/install-core-deployer.sh ops/install-core-hr-deployers.sh ops/sana-hr-deploy ops/configure-github-secrets.sh ops/sana-tasks-db-upgrade
       - name: Check required output
         run: |
           test -s dist/index.html
