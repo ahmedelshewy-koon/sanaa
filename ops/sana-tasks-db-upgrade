@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# SANA Tasks: backup, test migrations against a disposable restored DB, then
+# apply the same additive files to production with a per-file transaction.
+# No database reset, no application restart, no HR data changes.
+set -Eeuo pipefail
+umask 077
+[[ $EUID -eq 0 && $# -eq 1 ]] || { echo "Usage (root): sana-tasks-db-upgrade /path/to/drizzle" >&2; exit 2; }
+src="$(readlink -f -- "$1")"
+[[ -d "$src" ]] || { echo "Migration directory missing" >&2; exit 1; }
+CT="sanaa-tasks-postgres"
+USER="sanaa_tasks"
+DB="sanaa_tasks"
+command -v docker >/dev/null
+command -v pg_restore >/dev/null
+
+exec 8>/run/lock/sana-tasks-db-upgrade.lock
+flock -x 8
+systemctl is-active --quiet sanaa-tasks.service || { echo "Tasks service not active" >&2; exit 1; }
+docker inspect -f '{{.State.Running}}' "$CT" | grep -qx true
+
+mapfile -t files < <(find "$src" -maxdepth 1 -type f -regextype posix-extended -regex '.*/[0-9]{4}_[a-z0-9_]+[.]sql' -printf '%f\n' | LC_ALL=C sort)
+(( ${#files[@]} >= 3 )) || { echo "Migration set incomplete" >&2; exit 1; }
+for name in "${files[@]}"; do
+  [[ "$name" =~ ^[0-9]{4}_[a-z0-9_]+\.sql$ ]] || exit 1
+  # Any destructive data/schema change must be explicitly reviewed first.
+  if sed '/^[[:space:]]*--/d' "$src/$name" |
+     grep -Eiq '(^|[[:space:];])(DROP|TRUNCATE|DELETE|UPDATE)([[:space:];]|$)'; then
+    echo "Migration requires manual destructive-SQL review: $name" >&2
+    exit 1
+  fi
+done
+
+mapfile -t applied < <(docker exec "$CT" psql -X -U "$USER" -d "$DB" -At -v ON_ERROR_STOP=1 -c 'SELECT name FROM public.task_migrations ORDER BY name')
+for ((i=0; i<${#applied[@]}; i++)); do
+  [[ "$i" -lt "${#files[@]}" && "${applied[$i]}" == "${files[$i]}" ]] || {
+    echo "DB migration history differs from release; no changes made" >&2; exit 1;
+  }
+done
+pending=("${files[@]:${#applied[@]}}")
+if (( ${#pending[@]} == 0 )); then
+  echo "TASKS_SCHEMA_CURRENT: ${#applied[@]} migrations already applied"
+  exit 0
+fi
+
+echo "Pending additive migrations: ${pending[*]}"
+BACKUP_DIR=/root/sanaa-tasks-cicd-backups
+install -d -m 0700 "$BACKUP_DIR"
+available="$(df -Pk "$BACKUP_DIR" | awk 'NR==2{print $4}')"
+(( available > 1048576 )) || { echo "Need at least 1 GiB of free backup space" >&2; exit 1; }
+backup="$BACKUP_DIR/tasks-before-upgrade-$(date -u +%Y%m%dT%H%M%SZ).dump"
+echo "Backing up production Tasks PostgreSQL..."
+docker exec "$CT" pg_dump -U "$USER" -d "$DB" -Fc --no-owner --no-acl > "$backup"
+[[ -s "$backup" ]] && pg_restore --list "$backup" >/dev/null || { echo "BACKUP FAILED" >&2; exit 1; }
+chmod 0600 "$backup"
+echo "Backup validated: $backup"
+
+apply_files() {
+  local container="$1" dbuser="$2" database="$3"
+  local name
+  for name in "${pending[@]}"; do
+    echo "Applying $name to $container ..."
+    {
+      printf "BEGIN;\nSET LOCAL lock_timeout='5s';\nSET LOCAL statement_timeout='120s';\n"
+      cat "$src/$name"
+      printf "\nINSERT INTO public.task_migrations(name) VALUES ('%s');\nCOMMIT;\n" "$name"
+    } | docker exec -i "$container" psql -X -q -v ON_ERROR_STOP=1 -U "$dbuser" -d "$database"
+  done
+}
+verify_schema() {
+  local container="$1" dbuser="$2" database="$3"
+  docker exec -i "$container" psql -X -q -v ON_ERROR_STOP=1 -U "$dbuser" -d "$database" <<'SQL'
+DO $$
+BEGIN
+ IF to_regclass('public.planning_wbs') IS NULL
+    OR to_regclass('public.planning_activities') IS NULL
+    OR to_regclass('public.planning_relationships') IS NULL
+    OR to_regclass('public.planning_resources') IS NULL
+    OR to_regclass('public.planning_change_requests') IS NULL
+    OR to_regclass('public.planning_schedule_runs') IS NULL
+ THEN RAISE EXCEPTION 'Required planning tables missing'; END IF;
+ IF (SELECT count(*) FROM information_schema.columns
+     WHERE table_schema='public' AND table_name='tasks'
+       AND column_name IN ('site_estimate_minutes','site_started_at','site_expected_end_at')) <> 3
+ THEN RAISE EXCEPTION 'Required site-dispatch columns missing'; END IF;
+END $$;
+SQL
+}
+
+image="$(docker inspect -f '{{.Config.Image}}' "$CT")"
+clone="sana-tasks-db-test-$$"
+cleanup() { docker rm -f "$clone" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+echo "Starting an isolated temporary PostgreSQL clone (no network)..."
+docker run -d --rm --network none --memory 640m --cpus 1 --name "$clone" \
+  -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=tasks_clone "$image" >/dev/null
+ready=0
+for i in {1..40}; do
+  if docker exec "$clone" pg_isready -q -U postgres -d tasks_clone >/dev/null 2>&1; then ready=1; break; fi
+  sleep 1
+done
+(( ready )) || { echo "Temporary PostgreSQL startup failed" >&2; exit 1; }
+echo "Restoring production snapshot to isolated clone..."
+docker exec -i "$clone" pg_restore -U postgres -d tasks_clone --no-owner --no-acl --exit-on-error < "$backup"
+apply_files "$clone" postgres tasks_clone
+verify_schema "$clone" postgres tasks_clone
+echo "CLONE VALIDATION: PASS. Removing temporary container."
+cleanup
+trap - EXIT
+
+# The live database is only changed after the verified backup and successful clone rehearsal.
+echo "Applying verified migrations to live Tasks PostgreSQL..."
+apply_files "$CT" "$USER" "$DB"
+verify_schema "$CT" "$USER" "$DB"
+count="$(docker exec "$CT" psql -X -U "$USER" -d "$DB" -At -v ON_ERROR_STOP=1 -c 'SELECT count(*) FROM public.task_migrations')"
+[[ "$count" == "${#files[@]}" ]] || { echo "Unexpected final migration count: $count" >&2; exit 1; }
+systemctl is-active --quiet sanaa-tasks.service
+systemctl is-active --quiet sanaa-tasks-reminders.timer
+echo "TASKS_DATABASE_MIGRATIONS_SUCCESS: $count; BACKUP=$backup"
