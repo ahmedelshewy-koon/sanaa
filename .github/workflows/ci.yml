@@ -1,0 +1,34 @@
+name: Landing CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: landing-ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build site
+        run: npm run build
+      - name: JavaScript tests
+        run: node --test tests/*.test.mjs
+      - name: Validate deployment shell scripts
+        run: bash -n ops/bootstrap-vps.sh ops/sana-deploy-release ops/sana-core-deploy ops/install-core-deployer.sh ops/install-core-hr-deployers.sh ops/sana-hr-deploy ops/configure-github-secrets.sh
+      - name: Check required output
+        run: |
+          test -s dist/index.html
+          test -s dist/app.js
+          test -s dist/styles.css
+          test -d dist/public/assets
+

@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# Root-only release activator. Called through restricted sudo by sana-deploy.
+set -Eeuo pipefail
+umask 022
+
+if [[ $# -ne 2 ]]; then echo "Usage: sana-deploy-release {landing|tasks} 40-char-SHA" >&2; exit 2; fi
+kind="$1"; sha="$2"
+[[ "$kind" == "landing" || "$kind" == "tasks" ]] || { echo "Invalid application" >&2; exit 2; }
+[[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid SHA" >&2; exit 2; }
+
+exec 9>"/run/lock/sana-release-${kind}.lock"
+flock -x 9
+
+case "$kind" in
+  landing) root="/opt/sanaa-landing"; service="nginx" ;;
+  tasks)   root="/opt/sanaa-tasks"; service="sanaa-tasks.service" ;;
+esac
+incoming="/home/sana-deploy/incoming/${kind}-${sha}.tar.gz"
+release="$root/releases/$sha"
+[[ -f "$incoming" ]] || { echo "Missing uploaded archive: $incoming" >&2; exit 1; }
+
+mkdir -p "$root/releases"
+staging=""
+prior=""
+backup=""
+switched=0
+legacy_moved=0
+appdir="$root/app"
+site="/etc/nginx/sites-enabled/sanaasystems.com"
+
+cleanup() {
+  code=$?
+  trap - EXIT
+  if (( code != 0 )); then
+    echo "Deployment failed; restoring last running $kind release" >&2
+    if [[ "$kind" == "tasks" ]]; then
+      if (( switched )) && [[ -n "$prior" ]]; then
+        ln -sfn "$prior" "$root/.app-rollback-$$"
+        mv -Tf "$root/.app-rollback-$$" "$appdir"
+        systemctl restart sanaa-tasks.service || true
+      elif (( legacy_moved )) && [[ -n "$prior" && ! -e "$appdir" ]]; then
+        mv "$prior" "$appdir" || true
+      fi
+    elif [[ -n "$backup" && -f "$backup" ]]; then
+      cp "$backup" "$(readlink -f "$site")" || true
+      nginx -t && systemctl reload nginx || true
+    fi
+  fi
+  if [[ -n "$staging" && -d "$staging" ]]; then rm -rf -- "$staging"; fi
+  exit "$code"
+}
+trap cleanup EXIT
+
+if [[ ! -d "$release" ]]; then
+  staging="$(mktemp -d "$root/releases/.staging-${sha}-XXXXXXXX")"
+  if [[ "$kind" == "landing" ]]; then out="$staging/dist"; mkdir -p "$out"; else out="$staging"; fi
+
+  # Python 3.12 safe tar extraction rejects path traversal and unsafe links.
+  python3 - "$incoming" "$out" <<'PY'
+import sys, tarfile
+with tarfile.open(sys.argv[1], 'r:gz') as tf:
+    tf.extractall(sys.argv[2], filter='data')
+PY
+
+  if [[ "$kind" == "landing" ]]; then
+    [[ -s "$staging/dist/index.html" && -s "$staging/dist/app.js" ]] || { echo "Invalid landing archive" >&2; exit 1; }
+  else
+    [[ -s "$staging/server.js" && -d "$staging/.next" ]] || { echo "Invalid Tasks standalone archive" >&2; exit 1; }
+  fi
+  chmod -R a+rX "$staging"
+  mv "$staging" "$release"
+  staging=""
+fi
+
+if [[ "$kind" == "landing" ]]; then
+  [[ -e "$site" ]] || { echo "Missing Nginx site: $site" >&2; exit 1; }
+  nginx_conf="$(readlink -f "$site")"
+  backup="/root/sana-nginx-before-landing-${sha}-$(date +%s).conf"
+  cp -p "$nginx_conf" "$backup"
+  python3 - "$nginx_conf" "$release/dist" <<'PY'
+import re, sys
+from pathlib import Path
+path=Path(sys.argv[1])
+newroot=sys.argv[2]
+original=path.read_text()
+pattern=r'(^[ \t]*root[ \t]+)/opt/sanaa-landing/releases/[^;\s]+/dist([ \t]*;)'
+updated,count=re.subn(pattern, lambda m:m.group(1)+newroot+m.group(2), original, flags=re.M)
+if count != 1:
+    raise SystemExit(f"Expected exactly one landing root; found {count}")
+path.write_text(updated)
+PY
+  switched=1
+  nginx -t
+  systemctl reload nginx
+  ok=0
+  for attempt in {1..12}; do
+    code="$(curl -k -sS --max-time 8 --resolve sanaasystems.com:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://sanaasystems.com/ || true)"
+    asset="$(curl -k -sS --max-time 8 --resolve sanaasystems.com:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://sanaasystems.com/app.js || true)"
+    if [[ "$code" == "200" && "$asset" == "200" ]]; then ok=1; break; fi
+    sleep 2
+  done
+  (( ok )) || { echo "Landing origin health check failed" >&2; exit 1; }
+else
+  # Preserve the existing Tasks directory byte-for-byte on the first cutover.
+  if [[ -d "$appdir" && ! -L "$appdir" ]]; then
+    prior="$root/releases/legacy-before-actions-$(date +%Y%m%d%H%M%S)"
+    mv "$appdir" "$prior"
+    legacy_moved=1
+    ln -s "$prior" "$appdir"
+  fi
+  [[ -L "$appdir" ]] || { echo "Tasks app must be a symlink or a directory" >&2; exit 1; }
+  prior="$(readlink -f "$appdir")"
+  [[ -d "$prior" ]] || { echo "Previous Tasks release missing" >&2; exit 1; }
+  ln -s "$release" "$root/.app-next-$$"
+  mv -Tf "$root/.app-next-$$" "$appdir"
+  switched=1
+  systemctl restart sanaa-tasks.service
+  ok=0
+  for attempt in {1..20}; do
+    code="$(curl -fsS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:3107/ || true)"
+    if [[ "$code" == "200" ]]; then ok=1; break; fi
+    sleep 3
+  done
+  (( ok )) || { echo "Tasks health check failed" >&2; exit 1; }
+  systemctl is-active --quiet sanaa-tasks-reminders.timer || { echo "Tasks reminder timer not active" >&2; exit 1; }
+fi
+
+echo "DEPLOYED application=$kind commit=$sha"
+echo "HEALTH=OK"
+rm -f -- "$incoming"
+trap - EXIT

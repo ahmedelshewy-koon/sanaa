@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# SANA Core database-aware immutable release activator. Root-only via sudo.
+set -Eeuo pipefail
+umask 077
+[[ $# -eq 1 && "$1" =~ ^[0-9a-f]{40}$ ]] || { echo "Usage: sana-core-deploy <40-char commit>" >&2; exit 2; }
+[[ $EUID -eq 0 ]] || { echo "Root required" >&2; exit 2; }
+sha="$1"
+exec 9>/run/lock/sana-core-production.lock
+flock -x 9
+
+root=/opt/sana-platform
+envfile=/etc/sana-platform/sana.env
+incoming="/home/sana-deploy/incoming/core-${sha}.tar.gz"
+release="$root/releases/$sha"
+backups=/var/lib/sana-platform/backups
+service=sana-platform.service
+
+for f in "$envfile" "$incoming"; do [[ -s "$f" ]] || { echo "Missing required file: $f" >&2; exit 1; }; done
+for c in node pg_dump pg_restore python3 systemctl tar curl; do command -v "$c" >/dev/null || { echo "Missing dependency: $c" >&2; exit 1; }; done
+[[ -L "$root/current" ]] || { echo "Expected current release symlink" >&2; exit 1; }
+old="$(readlink -f "$root/current")"
+[[ -d "$old" ]] || { echo "Current release missing" >&2; exit 1; }
+systemctl is-active --quiet "$service" || { echo "Current SANA Core is not healthy" >&2; exit 1; }
+
+new_stage=""
+switched=0
+env_changed=0
+env_backup=""
+cleanup() {
+  rc=$?
+  trap - EXIT
+  if (( rc != 0 )); then
+    echo "SANA Core deployment aborted, code rollback attempted; database is NOT auto-restored" >&2
+    if (( switched )); then
+      ln -sfn "$old" "$root/.current-restore-$$"
+      mv -Tf "$root/.current-restore-$$" "$root/current"
+    fi
+    if (( env_changed )) && [[ -s "$env_backup" ]]; then
+      cp -p "$env_backup" "$envfile"
+    fi
+    if (( switched )); then
+      systemctl restart "$service" || true
+      curl -fsS --max-time 15 http://127.0.0.1:3110/api/health || true
+    fi
+  fi
+  [[ -z "$new_stage" || ! -d "$new_stage" ]] || rm -rf -- "$new_stage"
+  exit "$rc"
+}
+trap cleanup EXIT
+
+if [[ ! -d "$release" ]]; then
+  new_stage="$(mktemp -d "$root/releases/.stage-${sha}-XXXXXXXX")"
+  python3 - "$incoming" "$new_stage" <<'PY'
+import sys, tarfile
+with tarfile.open(sys.argv[1], "r:gz") as arc:
+    arc.extractall(sys.argv[2], filter="data")
+PY
+  [[ -s "$new_stage/backend/server.js" && -s "$new_stage/frontend/dist/index.html" && -s "$new_stage/backend/node_modules/prisma/build/index.js" ]] || {
+    echo "Incomplete Core artifact" >&2; exit 1;
+  }
+  chmod -R a+rX "$new_stage"
+  mv "$new_stage" "$release"
+  new_stage=""
+fi
+
+mkdir -p "$backups"
+chmod 0700 "$backups"
+backup="$backups/sana-core-before-${sha}-$(date -u +%Y%m%dT%H%M%SZ).dump"
+echo "Database backup starting (archive not printed)..."
+node --env-file="$envfile" - "$backup" <<'NODE'
+const {spawnSync}=require('node:child_process');
+const target=process.argv[2];
+const u=new URL(process.env.DATABASE_URL);
+const db=decodeURIComponent(u.pathname.replace(/^\//,''));
+if(!db || !['postgres:','postgresql:'].includes(u.protocol)) throw Error('Invalid PostgreSQL URL');
+const env={...process.env,
+ PGHOST:u.hostname, PGPORT:u.port||'5432',
+ PGUSER:decodeURIComponent(u.username), PGPASSWORD:decodeURIComponent(u.password),
+ PGDATABASE:db,
+ PGSSLMODE:u.searchParams.get('sslmode')||'prefer'
+};
+const proc=spawnSync('pg_dump',['--format=custom','--no-owner','--no-privileges','--file='+target],
+ {env,stdio:'inherit',timeout:240000});
+if(proc.error) throw proc.error;
+if(proc.status!==0) throw Error('pg_dump failed');
+NODE
+[[ -s "$backup" ]] || { echo "Database backup missing or empty" >&2; exit 1; }
+pg_restore --list "$backup" >/dev/null || { echo "Cannot read database backup" >&2; exit 1; }
+echo "Verified backup: $backup"
+
+echo "Applying reviewed Prisma migrations..."
+(
+  cd "$release/backend"
+  node --env-file="$envfile" node_modules/prisma/build/index.js migrate deploy
+)
+echo "Updating FRONTEND_URL for app domain..."
+env_backup="$backups/sana-env-before-${sha}-$(date -u +%Y%m%dT%H%M%SZ).env"
+cp -p "$envfile" "$env_backup"
+python3 - "$envfile" <<'PY'
+from pathlib import Path
+import os, sys, tempfile
+p=Path(sys.argv[1])
+s=p.read_text()
+lines=s.splitlines(keepends=True)
+matches=[i for i,l in enumerate(lines) if l.startswith('FRONTEND_URL=')]
+if len(matches)!=1: raise SystemExit('Expected one FRONTEND_URL entry')
+lines[matches[0]]='FRONTEND_URL=https://app.sanaasystems.com\n'
+st=p.stat()
+fd,tmp=tempfile.mkstemp(dir=p.parent, prefix='.sana-env-')
+try:
+    os.fchmod(fd,st.st_mode & 0o7777)
+    os.fchown(fd,st.st_uid,st.st_gid)
+    with os.fdopen(fd,'w') as f:
+        f.writelines(lines)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp,p)
+except BaseException:
+    if os.path.exists(tmp): os.unlink(tmp)
+    raise
+PY
+env_changed=1
+
+ln -s "$release" "$root/.current-next-$$"
+mv -Tf "$root/.current-next-$$" "$root/current"
+switched=1
+systemctl restart "$service"
+ok=0
+for attempt in {1..25}; do
+  status="$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:3110/api/health || true)"
+  plans="$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:3110/api/public/plans || true)"
+  if [[ "$status" == "200" && "$plans" == "200" ]]; then ok=1; break; fi
+  sleep 3
+done
+(( ok )) || { echo "SANA health checks failed: health=$status plans=$plans" >&2; exit 1; }
+echo "SANA Core production active: $sha"
+echo "Verified API /api/health and /api/public/plans"
+echo "Rollback data note: Prisma migrations are not automatically reverted."
+rm -f -- "$incoming"
+trap - EXIT
